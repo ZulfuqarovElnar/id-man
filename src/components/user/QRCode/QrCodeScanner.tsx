@@ -3,7 +3,7 @@ import { BrowserMultiFormatReader, Result } from '@zxing/library';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faXmark } from '@fortawesome/free-solid-svg-icons';
 import LightIcon from '../../svg/LightIcon';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const corners = [
   { className: 'corner-top-left' },
@@ -24,6 +24,7 @@ const QRCodeScanner: React.FC = () => {
   const [isLightOn, setIsLightOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
+  const navigate = useNavigate(); 
 
   const handleLightToggle = () => {
     setIsLightOn(prev => !prev);
@@ -31,10 +32,13 @@ const QRCodeScanner: React.FC = () => {
 
   const handleScan = useCallback((result: Result) => {
     if (result) {
-      console.log('QR code scanned:', result);
+      const url = result.getText();
+      console.log('QR code scanned:', url);
+      navigate(url); 
     }
-  }, []);
+  }, [navigate]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleError = useCallback(
     debounce((error: any) => {
       if (error) {
@@ -47,18 +51,14 @@ const QRCodeScanner: React.FC = () => {
   useEffect(() => {
     const startScanning = async () => {
       try {
-        // Get all media devices
         const devices = await navigator.mediaDevices.enumerateDevices();
-        // Filter for video input devices and select the rear camera if available
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         const rearCamera = videoDevices.find(device => device.label.toLowerCase().includes('back')) || videoDevices[0];
 
-        // Request camera permissions and select the rear camera
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { deviceId: rearCamera?.deviceId ? { exact: rearCamera.deviceId } : undefined } 
         });
 
-        // Stop the stream after permission check
         stream.getTracks().forEach(track => track.stop()); 
 
         if (rearCamera) {
@@ -86,6 +86,7 @@ const QRCodeScanner: React.FC = () => {
     startScanning();
 
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const currentVideoRef = videoRef.current;
       if (currentVideoRef && currentVideoRef.srcObject) {
         const stream = currentVideoRef.srcObject as MediaStream;
@@ -135,7 +136,7 @@ const QRCodeScanner: React.FC = () => {
         </div>
         <Link to="/password">
           <button
-            className="flex items-center gap-4 mx-auto bg-gray-800 rounded-xl text-white px-5 py-3.5 mt-2 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="flex items-center gap-4 mx-auto bg-gray-800 rounded-xl text-white px-5 py-3.5 mb-10 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
             type="button"
           >
             <FontAwesomeIcon icon={faPen} />
