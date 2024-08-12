@@ -24,7 +24,6 @@ const debounce = (func: Function, wait: number) => {
 
 const QRCodeScanner: React.FC = () => {
   const [isLightOn, setIsLightOn] = useState(false);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null); // Track permission status
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
@@ -39,7 +38,7 @@ const QRCodeScanner: React.FC = () => {
     }
   }, []);
 
-  // Debounced error handler
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleError = useCallback(
     debounce((error: any) => {
       if (error) {
@@ -54,7 +53,6 @@ const QRCodeScanner: React.FC = () => {
       try {
         // Request camera permissions
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasPermission(true); // Permission granted
         stream.getTracks().forEach(track => track.stop()); // Stop the stream after permission check
 
         // Check for video devices
@@ -78,7 +76,6 @@ const QRCodeScanner: React.FC = () => {
           console.error('No video devices found');
         }
       } catch (e) {
-        setHasPermission(false); // Permission denied
         console.error('Error accessing camera:', e);
       }
     };
@@ -86,8 +83,11 @@ const QRCodeScanner: React.FC = () => {
     startScanning();
 
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      // Store videoRef.current in a local variable to avoid potential changes during cleanup
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentVideoRef = videoRef.current;
+      if (currentVideoRef && currentVideoRef.srcObject) {
+        const stream = currentVideoRef.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
 
@@ -95,8 +95,7 @@ const QRCodeScanner: React.FC = () => {
         codeReader.current.reset();
       }
     };
-  }, [hasPermission, handleScan, handleError]);
-
+  }, [handleScan, handleError]); // Updated dependencies
 
   return (
     <div className="flex flex-col items-center py-12 px-6 bg-slate-600 h-screen">
