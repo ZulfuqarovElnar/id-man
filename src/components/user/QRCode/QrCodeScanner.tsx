@@ -9,7 +9,7 @@ const corners = [
   { className: 'corner-top-left' },
   { className: 'corner-top-right' },
   { className: 'corner-bottom-left' },
-  { className: 'corner-bottom-right' }
+  { className: 'corner-bottom-right' } 
 ];
 
 const QRCodeScanner: React.FC = () => {
