@@ -5,7 +5,6 @@ import { faPen, faXmark } from '@fortawesome/free-solid-svg-icons';
 import LightIcon from '../../svg/LightIcon';
 import { Link } from 'react-router-dom';
 
-// Define the corners of the QR code scanner view
 const corners = [
   { className: 'corner-top-left' },
   { className: 'corner-top-right' },
@@ -13,13 +12,12 @@ const corners = [
   { className: 'corner-bottom-right' }
 ];
 
-// Utility function to debounce logging
-const debounce = (func: Function, wait: number) => {
+const debounce = <T extends (...args: any[]) => void>(func: T, wait: number): T => {
   let timeout: NodeJS.Timeout;
-  return (...args: any[]) => {
+  return ((...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
-  };
+  }) as T;
 };
 
 const QRCodeScanner: React.FC = () => {
@@ -34,11 +32,9 @@ const QRCodeScanner: React.FC = () => {
   const handleScan = useCallback((result: Result) => {
     if (result) {
       console.log('QR code scanned:', result);
-      // Handle the scanned data here, like saving it or redirecting.
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleError = useCallback(
     debounce((error: any) => {
       if (error) {
@@ -51,19 +47,26 @@ const QRCodeScanner: React.FC = () => {
   useEffect(() => {
     const startScanning = async () => {
       try {
-        // Request camera permissions
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop()); // Stop the stream after permission check
-
-        // Check for video devices
+        // Get all media devices
         const devices = await navigator.mediaDevices.enumerateDevices();
+        // Filter for video input devices and select the rear camera if available
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        if (videoDevices.length > 0) {
+        const rearCamera = videoDevices.find(device => device.label.toLowerCase().includes('back')) || videoDevices[0];
+
+        // Request camera permissions and select the rear camera
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { deviceId: rearCamera?.deviceId ? { exact: rearCamera.deviceId } : undefined } 
+        });
+
+        // Stop the stream after permission check
+        stream.getTracks().forEach(track => track.stop()); 
+
+        if (rearCamera) {
           codeReader.current = new BrowserMultiFormatReader();
           const reader = codeReader.current;
 
           if (videoRef.current && reader) {
-            reader.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
+            reader.decodeFromVideoDevice(rearCamera.deviceId, videoRef.current, (result, error) => {
               if (result) {
                 handleScan(result);
               }
@@ -73,7 +76,7 @@ const QRCodeScanner: React.FC = () => {
             });
           }
         } else {
-          console.error('No video devices found');
+          console.error('No rear camera found');
         }
       } catch (e) {
         console.error('Error accessing camera:', e);
@@ -83,8 +86,6 @@ const QRCodeScanner: React.FC = () => {
     startScanning();
 
     return () => {
-      // Store videoRef.current in a local variable to avoid potential changes during cleanup
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const currentVideoRef = videoRef.current;
       if (currentVideoRef && currentVideoRef.srcObject) {
         const stream = currentVideoRef.srcObject as MediaStream;
@@ -95,7 +96,7 @@ const QRCodeScanner: React.FC = () => {
         codeReader.current.reset();
       }
     };
-  }, [handleScan, handleError]); // Updated dependencies
+  }, [handleScan, handleError]);
 
   return (
     <div className="flex flex-col items-center py-12 px-6 bg-slate-600 h-screen">
