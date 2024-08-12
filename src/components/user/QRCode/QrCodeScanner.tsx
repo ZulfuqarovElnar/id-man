@@ -1,37 +1,102 @@
-import React, { useState } from 'react';
-import QrScanner from 'react-qr-scanner';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { BrowserMultiFormatReader, Result } from '@zxing/library';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faXmark } from '@fortawesome/free-solid-svg-icons';
 import LightIcon from '../../svg/LightIcon';
 import { Link } from 'react-router-dom';
 
+// Define the corners of the QR code scanner view
 const corners = [
   { className: 'corner-top-left' },
   { className: 'corner-top-right' },
   { className: 'corner-bottom-left' },
-  { className: 'corner-bottom-right' } 
+  { className: 'corner-bottom-right' }
 ];
+
+// Utility function to debounce logging
+const debounce = (func: Function, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
 const QRCodeScanner: React.FC = () => {
   const [isLightOn, setIsLightOn] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null); // Track permission status
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
   const handleLightToggle = () => {
     setIsLightOn(prev => !prev);
   };
 
-  const handleScan = (data: any) => {
-    if (data) {
-      console.log('QR code scanned:', data);
-      // You may want to handle the scanned data here, like saving it or redirecting.
+  const handleScan = useCallback((result: Result) => {
+    if (result) {
+      console.log('QR code scanned:', result);
+      // Handle the scanned data here, like saving it or redirecting.
     }
-  };
+  }, []);
 
-  const handleError = (error: any) => {
-    if (error) {
-      console.error('QR code scan error:', error);
-      // Handle the error appropriately, maybe display an error message.
-    }
-  };
+  // Debounced error handler
+  const handleError = useCallback(
+    debounce((error: any) => {
+      if (error) {
+        console.error('QR code scan error:', error);
+      }
+    }, 2000),
+    []
+  );
+
+  useEffect(() => {
+    const startScanning = async () => {
+      try {
+        // Request camera permissions
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasPermission(true); // Permission granted
+        stream.getTracks().forEach(track => track.stop()); // Stop the stream after permission check
+
+        // Check for video devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        if (videoDevices.length > 0) {
+          codeReader.current = new BrowserMultiFormatReader();
+          const reader = codeReader.current;
+
+          if (videoRef.current && reader) {
+            reader.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
+              if (result) {
+                handleScan(result);
+              }
+              if (error) {
+                handleError(error);
+              }
+            });
+          }
+        } else {
+          console.error('No video devices found');
+        }
+      } catch (e) {
+        setHasPermission(false); // Permission denied
+        console.error('Error accessing camera:', e);
+      }
+    };
+
+    startScanning();
+
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      if (codeReader.current) {
+        codeReader.current.reset();
+      }
+    };
+  }, [hasPermission, handleScan, handleError]);
+
 
   return (
     <div className="flex flex-col items-center py-12 px-6 bg-slate-600 h-screen">
@@ -49,12 +114,7 @@ const QRCodeScanner: React.FC = () => {
         </div>
         <div className="flex flex-col justify-center items-center gap-5 relative">
           <div className="relative mb-5 w-60 h-60">
-            <QrScanner
-              delay={300}
-              className={`w-60 h-60 object-cover ${isLightOn ? 'brightness-125' : 'brightness-100'}`}
-              onScan={handleScan}
-              onError={handleError}
-            />
+            <video ref={videoRef} className={`w-60 h-60 object-cover ${isLightOn ? 'brightness-125' : 'brightness-100'}`} />
             {corners.map((corner, index) => (
               <div
                 key={index}
