@@ -1,13 +1,12 @@
 import React from 'react';
-import QRCodeScanner from './components/qr/QRCodeButton';
-
-
-function App() {
+import { BrowserRouter as Router } from 'react-router-dom';
+import AppRoutes from './routes/AppRoutes';
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <QRCodeScanner />
-    </div>
+    <Router>
+      <AppRoutes /> 
+    </Router>
   );
-}
+};
 
 export default App;

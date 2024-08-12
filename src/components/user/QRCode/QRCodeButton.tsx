@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const QRCodeButton
 : React.FC = () => {
@@ -19,9 +20,11 @@ const QRCodeButton
           <div className="w-full h-[5px] bg-[#076AFF] shadow-custom"></div>
         </div>
       </div>
-      <button className="bg-[#0064F9] hover:bg-[#1761d1] text-white py-5 px-20 rounded-xl font-bold text-xl">
-        Skan et
-      </button>
+      <Link to="/scanner">
+        <button className="bg-[#0064F9] hover:bg-[#1761d1] text-white py-5 px-20 rounded-xl font-bold text-xl">
+          Skan et
+        </button>
+      </Link>
     </div>
   );
 };
