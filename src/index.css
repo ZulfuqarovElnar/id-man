@@ -2,7 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+html{
+    background-color: #333;
+}
+/* Font-Family */
+
+@import url('https://fonts.googleapis.com/css2?family=Bungee&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+.font-inter{
+    font-family: "Inter", sans-serif;
+}
+
+.font-bungee {
+    font-family: "Bungee", sans-serif;
+}
+
+
 /* QRCodeScanner style */
+
 .corner-top-left {
     top: 0;
     left: 0;
